@@ -5,6 +5,9 @@ import pandas as pd
 import torchvision.transforms as transforms
 import numpy as np
 from pathlib import Path
+
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
 from torch.utils.data import DataLoader, Dataset
 from PIL import Image
 
@@ -194,3 +197,41 @@ def makeList(train_img_dir, train_img_list, idxs_val):
         val_img_list.append(img_dir)
     # print("Make List\n", val_img_list)
     return val_img_list
+
+def Predictions(train, train_fmri, val, val_fmri):
+
+    random_forest_model = LinearRegression()
+    random_forest_model.fit(train, train_fmri)
+    random_forest_predictions = random_forest_model.predict(val)
+
+    print(val_fmri, "\n _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n", random_forest_predictions)
+    random_forest_mse = mean_squared_error(val_fmri, random_forest_predictions)
+    print(f'Random Forest Mean Squared Error: {random_forest_mse}')
+    accuracy_score = random_forest_model.score(val, val_fmri)
+
+    print("accuracy score", accuracy_score)
+    print(len(random_forest_predictions))
+
+    return random_forest_predictions
+
+def learnmore(classifications, image_data, fmri_data, batch_size=10):
+    length = len(classifications)
+    results = []
+    fmri = []
+
+    for i in range(0, len(image_data), batch_size):
+        batch_images = image_data[i:i + batch_size]
+        batch_fmri = fmri_data[i:i + batch_size]
+
+        for j in range(length):
+            image = classifications[j]
+            temp = []
+            temp.append(image[2])
+
+            for k in range(len(batch_images)):
+                a = batch_images[k]
+                temp = np.insert(a, 0, image[2])
+                results.append(temp)
+                print(i, temp)
+                fmri.append(batch_fmri[k])
+    return results, fmri

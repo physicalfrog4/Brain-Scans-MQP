@@ -104,6 +104,13 @@ def main():
         extract_data_features(model_img, train_imgs_dataloader, val_imgs_dataloader, test_imgs_dataloader, 50))
     del model_img
 
+    print("________ LEARN MORE ________")
+    dftrain, dftrainF = data.learnmore(lh_classifications, features_train, lh_fmri_train)
+    dfval, dfvalF = data.learnmore(lh_classifications_val, features_val, lh_fmri_val)
+    print("________ Predictions ________")
+    data.Predictions(dftrain, dftrainF, dfval, dfvalF)
+    exit()
+
     print("________ Combine Data ________")
     lh_train_input = np.concatenate([lh_classifications, features_train], axis=1)
     rh_train_input = np.concatenate([rh_classifications, features_train], axis=1)
