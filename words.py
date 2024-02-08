@@ -22,36 +22,49 @@ def makePredictions(train, train_fmri, val, val_fmri):
     return random_forest_predictions
 
 
-def makeClassifications(idxs, img_list, img_dir, batch_size=500):
+def  makeClassifications(image_list, idxs, batch_size=500):
     # w2v = api.load("word2vec-google-news-300")
-    torch.cuda.empty_cache()
-    train_img_list = makeList(img_dir, img_list, idxs)
     modelYOLO = YOLO('yolov8n.pt')
-    modelYOLO.to('cuda:1')
 
+    print(image_list)
     results = []
+    index = 0
 
-    for start_idx in range(0, len(train_img_list), batch_size):
+    for start_idx in range(0, len(image_list), batch_size):
         end_idx = start_idx + batch_size
-        batch_imgs = train_img_list[start_idx:end_idx]
+        batch_imgs = image_list[start_idx:end_idx]
 
         # Perform predictions on the batch of images
         image_results = modelYOLO.predict(batch_imgs, stream=True)
-        for r in image_results:
-            temp = set()  # Use a set to store unique items
-            detection_count = r.boxes.shape[0]
+        # data = []
 
-            for i in range(min(detection_count, 5)):  # Limit to a maximum of 5 items
-                cls = int(r.boxes.cls[i].item())
-                name = r.names[cls]
-                confidence = float(r.boxes.conf[i].item())
-                bounding_box = r.boxes.xyxy[i].cpu().numpy()
-                x = int(bounding_box[0])
-                y = int(bounding_box[1])
-                width = int(bounding_box[2] - x)
-                height = int(bounding_box[3] - y)
-                temp.add(cls)  # Add class to the set
-            results.append(list(temp))
+        for result in image_results:
+            # print(idxs[index])
+            index = index + 1
+            # print(result)
+            # temp = []  # Use a set to store unique items
+            detection_count = result.boxes.shape[0]
+
+            for i in range(min(detection_count, 3)):  # Limit to a maximum of 5 items
+
+                cls = int(result.boxes.cls[i].item())
+                name = result.names[cls]
+                confidence = float(result.boxes.conf[i].item())
+                # print(confidence)
+                # print(name, cls, confidence)
+                if confidence > 0.9:
+                    # temp.append(name)
+                    # temp.append(cls)
+                    bounding_box = result.boxes.xyxy[i].cpu().numpy()
+
+                    # print("Bounding Box Coordinates:", bounding_box)
+
+                    x1, y1, x2, y2 = map(int, bounding_box)
+                    results.append([index, name, cls, x1, y1, x2, y2])
+                    # print("Top-Left Corner (x1, y1):", x1, y1)
+                    # print("Bottom-Right Corner (x2, y2):", x2, y2)
+                    # print('\n')
+            # results.append(temp)
 
     del modelYOLO
     print(results)

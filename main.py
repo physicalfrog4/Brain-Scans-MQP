@@ -65,28 +65,34 @@ def main():
     lh_fmri_val = lh_fmri[idxs_val]
     rh_fmri_val = rh_fmri[idxs_val]
 
+    print("________ Make Lists ________")
+    #print(idxs_train)
+    train_images = data.makeList(train_img_dir, train_img_list, idxs_train)
+    val_images = data.makeList(train_img_dir, train_img_list, idxs_val)
+    test_images = data.makeList(test_img_dir, test_img_list, idxs_test)
+
     print("________ Create Dataframe For ROI ________")
 
-    lh_train_ROI = data.dfROI(args, 'left', idxs_train, lh_fmri, rh_fmri)
-    lh_val_ROI = data.dfROI(args, 'left', idxs_val, lh_fmri, rh_fmri)
-    lh_test_ROI = data.dfROI(args, 'left', idxs_test, lh_fmri, rh_fmri)
+    #lh_train_ROI = data.dfROI(args, 'left', idxs_train, lh_fmri, rh_fmri)
+    #lh_val_ROI = data.dfROI(args, 'left', idxs_val, lh_fmri, rh_fmri)
+    #lh_test_ROI = data.dfROI(args, 'left', idxs_test, lh_fmri, rh_fmri)
 
-    rh_train_ROI = data.dfROI(args, 'right', idxs_train, lh_fmri, rh_fmri)
-    rh_val_ROI = data.dfROI(args, 'right', idxs_val, lh_fmri, rh_fmri)
-    rh_test_ROI = data.dfROI(args, 'right', idxs_test, lh_fmri, rh_fmri)
+    #rh_train_ROI = data.dfROI(args, 'right', idxs_train, lh_fmri, rh_fmri)
+    #rh_val_ROI = data.dfROI(args, 'right', idxs_val, lh_fmri, rh_fmri)
+    #rh_test_ROI = data.dfROI(args, 'right', idxs_test, lh_fmri, rh_fmri)
 
     print("________ Create Dataframe for All Regions ________")
 
-    df_lh_train = data.createDataFrame(idxs_train, lh_fmri_train)
-    df_lh_val = data.createDataFrame(idxs_val, lh_fmri_val)
-    df_rh_train = data.createDataFrame(idxs_train, rh_fmri_train)
-    df_rh_val = data.createDataFrame(idxs_val, rh_fmri_val)
+    #df_lh_train = data.createDataFrame(idxs_train, lh_fmri_train)
+    #df_lh_val = data.createDataFrame(idxs_val, lh_fmri_val)
+    #df_rh_train = data.createDataFrame(idxs_train, rh_fmri_train)
+    #df_rh_val = data.createDataFrame(idxs_val, rh_fmri_val)
     torch.cuda.empty_cache()
 
     print("________ Make Classifications ________")
-    lh_classifications_val = makeClassifications(idxs_val, train_img_list, train_img_dir)
+    lh_classifications_val = makeClassifications(val_images, idxs_val)
     rh_classifications_val = lh_classifications_val
-    lh_classifications = makeClassifications(idxs_train, train_img_list, train_img_dir)
+    lh_classifications = makeClassifications(train_images, idxs_train)
     rh_classifications = lh_classifications
     torch.cuda.empty_cache()
 
