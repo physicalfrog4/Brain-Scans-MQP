@@ -25,6 +25,7 @@ def makePredictions(train, train_fmri, val, val_fmri):
 def  makeClassifications(image_list, idxs, batch_size=100):
     # w2v = api.load("word2vec-google-news-300")
     modelYOLO = YOLO('yolov8n.pt')
+    modelYOLO.to('cuda:1')
 
     print(image_list)
     results = []
@@ -59,8 +60,8 @@ def  makeClassifications(image_list, idxs, batch_size=100):
 
                     # print("Bounding Box Coordinates:", bounding_box)
 
-                    x1, y1, x2, y2 = map(int, bounding_box)
-                    results.append([index, name, cls, x1, y1, x2, y2])
+                    #x1, y1, x2, y2 = map(int, bounding_box)
+                    results.append([index, cls])
                     # print("Top-Left Corner (x1, y1):", x1, y1)
                     # print("Bottom-Right Corner (x2, y2):", x2, y2)
                     # print('\n')
@@ -69,7 +70,7 @@ def  makeClassifications(image_list, idxs, batch_size=100):
 
     del modelYOLO
     print(results)
-    data = pd.DataFrame(results)
-    data.fillna(-1, inplace=True)
-    print(data)
-    return data
+    #data = pd.DataFrame(results)
+    #data.fillna(-1, inplace=True)
+    #print(data)
+    return results
