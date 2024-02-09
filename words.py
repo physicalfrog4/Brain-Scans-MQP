@@ -22,7 +22,7 @@ def makePredictions(train, train_fmri, val, val_fmri):
     return random_forest_predictions
 
 
-def  makeClassifications(image_list, idxs, batch_size=500):
+def  makeClassifications(image_list, idxs, batch_size=100):
     # w2v = api.load("word2vec-google-news-300")
     modelYOLO = YOLO('yolov8n.pt')
 
@@ -65,6 +65,7 @@ def  makeClassifications(image_list, idxs, batch_size=500):
                     # print("Bottom-Right Corner (x2, y2):", x2, y2)
                     # print('\n')
             # results.append(temp)
+        torch.cuda.empty_cache()
 
     del modelYOLO
     print(results)

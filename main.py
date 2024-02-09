@@ -92,6 +92,7 @@ def main():
     print("________ Make Classifications ________")
     lh_classifications_val = makeClassifications(val_images, idxs_val)
     rh_classifications_val = lh_classifications_val
+    torch.cuda.empty_cache()
     lh_classifications = makeClassifications(train_images, idxs_train)
     rh_classifications = lh_classifications
     torch.cuda.empty_cache()
