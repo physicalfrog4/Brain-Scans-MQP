@@ -198,10 +198,20 @@ def makeList(train_img_dir, train_img_list, idxs_val):
     # print("Make List\n", val_img_list)
     return val_img_list
 
+
 def Predictions(train, train_fmri, val, val_fmri):
+    print("PREDICTIONS")
+    train = train.to_numpy()
+    train_fmri = train_fmri.to_numpy()
+    val = val.to_numpy()
+    val_fmri = val_fmri.to_numpy()
+    # input train data
 
     random_forest_model = LinearRegression()
+    # random_forest_model = RidgeRegression()
     random_forest_model.fit(train, train_fmri)
+    #print(val)
+
     random_forest_predictions = random_forest_model.predict(val)
 
     print(val_fmri, "\n _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n", random_forest_predictions)
@@ -214,24 +224,58 @@ def Predictions(train, train_fmri, val, val_fmri):
 
     return random_forest_predictions
 
-def learnmore(classifications, image_data, fmri_data, batch_size=10):
-    length = len(classifications)
+
+def learnmore(classifications, image_data, fmri_data):
+    print("START OF LEARN MORE FUNCTION")
+    # print(classifications)
+
+    numClass = len(classifications)
+    print(numClass)
+    numImages = len(image_data)
+    print(numImages)
+    print(len(fmri_data))
+    print(fmri_data)
+
     results = []
     fmri = []
+    temp = []
+    previousIMG = classifications[0][1]
+    index = 0
 
-    for i in range(0, len(image_data), batch_size):
-        batch_images = image_data[i:i + batch_size]
-        batch_fmri = fmri_data[i:i + batch_size]
+    for j in enumerate(classifications):
 
-        for j in range(length):
-            image = classifications[j]
-            temp = []
-            temp.append(image[2])
+        img = j[1][0]
+        # print(img)
+        img = int(img)
+        arr = []
+        arr.append((j[1][1]))
+        arr.append((j[1][2]))
+        arr = list(arr)
+        print(arr)
 
-            for k in range(len(batch_images)):
-                a = batch_images[k]
-                temp = np.insert(a, 0, image[2])
-                results.append(temp)
-                print(i, temp)
-                fmri.append(batch_fmri[k])
-    return results, fmri
+        # Image Data
+
+        arr0 = (np.array(image_data[index])).tolist()
+
+        print(arr0)
+        new_list = arr + arr0
+
+        results.append(new_list)
+
+        # FMRI Data
+        fmri.append(np.array(fmri_data[index]))
+        index = index + 1
+
+    df = pd.DataFrame(results)
+
+    df1 = pd.DataFrame(fmri)
+    # print(fmri)
+    print(df)
+    print(df1)
+
+    return df, df1
+
+
+def unnormalize_fmri_data(normalized_data, original_min, original_max):
+    unnormalized_data = normalized_data * (original_max - original_min) + original_min
+    return unnormalized_data

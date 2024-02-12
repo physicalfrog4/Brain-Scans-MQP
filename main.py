@@ -8,18 +8,24 @@ from data import normalize_fmri_data
 from LEM import extract_data_features, predAccuracy
 
 
-
 def main():
     if platform == 'jupyter_notebook':
         data_dir = '../MQP/algonauts_2023_challenge_data/'
+        data_dir = '../MQP/algonauts_2023_challenge_data/'
         parent_submission_dir = 'C:\GitHub\Brain-Scans-MQP\submissiondir'
-    subj = 1  # @param ["1", "2", "3", "4", "5", "6", "7", "8"] {type:"raw", allow-input: true}
+    subj = 5  # @param ["1", "2", "3", "4", "5", "6", "7", "8"] {type:"raw", allow-input: true}
     # args
     args = argObj(data_dir, parent_submission_dir, subj)
     fmri_dir = os.path.join(args.data_dir, 'training_split', 'training_fmri')
     lh_fmri = np.load(os.path.join(fmri_dir, 'lh_training_fmri.npy'))
     rh_fmri = np.load(os.path.join(fmri_dir, 'rh_training_fmri.npy'))
-    batch_size = 100
+
+
+    lh_data_min = np.min(lh_fmri)
+    lh_data_max = np.max(lh_fmri)
+    rh_data_min = np.min(rh_fmri)
+    rh_data_max = np.max(rh_fmri)
+
     print("________ Process Data ________")
     # Normalize Data Before Split
     lh_fmri = normalize_fmri_data(lh_fmri)
@@ -47,6 +53,7 @@ def main():
 
     # Create lists will all training and test image file names, sorted
     train_img_list = os.listdir(train_img_dir)
+    train_img_list = train_img_list[: 1000]
     train_img_list.sort()
     test_img_list = os.listdir(test_img_dir)
     test_img_list.sort()
@@ -66,33 +73,37 @@ def main():
     rh_fmri_val = rh_fmri[idxs_val]
 
     print("________ Make Lists ________")
-    #print(idxs_train)
+    print(idxs_train)
     train_images = data.makeList(train_img_dir, train_img_list, idxs_train)
     val_images = data.makeList(train_img_dir, train_img_list, idxs_val)
     test_images = data.makeList(test_img_dir, test_img_list, idxs_test)
+    # print(train_images)
 
     print("________ Create Dataframe For ROI ________")
 
-    #lh_train_ROI = data.dfROI(args, 'left', idxs_train, lh_fmri, rh_fmri)
-    #lh_val_ROI = data.dfROI(args, 'left', idxs_val, lh_fmri, rh_fmri)
-    #lh_test_ROI = data.dfROI(args, 'left', idxs_test, lh_fmri, rh_fmri)
+    # lh_train_ROI = data.dfROI(args, 'left', idxs_train, lh_fmri, rh_fmri)
+    # lh_val_ROI = data.dfROI(args, 'left', idxs_val, lh_fmri, rh_fmri)
+    # lh_test_ROI = data.dfROI(args, 'left', idxs_test, lh_fmri, rh_fmri)
 
-    #rh_train_ROI = data.dfROI(args, 'right', idxs_train, lh_fmri, rh_fmri)
-    #rh_val_ROI = data.dfROI(args, 'right', idxs_val, lh_fmri, rh_fmri)
-    #rh_test_ROI = data.dfROI(args, 'right', idxs_test, lh_fmri, rh_fmri)
+    # rh_train_ROI = data.dfROI(args, 'right', idxs_train, lh_fmri, rh_fmri)
+    # rh_val_ROI = data.dfROI(args, 'right', idxs_val, lh_fmri, rh_fmri)
+    # rh_test_ROI = data.dfROI(args, 'right', idxs_test, lh_fmri, rh_fmri)
 
     print("________ Create Dataframe for All Regions ________")
 
-    #df_lh_train = data.createDataFrame(idxs_train, lh_fmri_train)
-    #df_lh_val = data.createDataFrame(idxs_val, lh_fmri_val)
-    #df_rh_train = data.createDataFrame(idxs_train, rh_fmri_train)
-    #df_rh_val = data.createDataFrame(idxs_val, rh_fmri_val)
+    # df_lh_train = data.createDataFrame(idxs_train, lh_fmri_train)
+    # df_lh_val = data.createDataFrame(idxs_val, lh_fmri_val)
+    # df_rh_train = data.createDataFrame(idxs_train, rh_fmri_train)
+    # df_rh_val = data.createDataFrame(idxs_val, rh_fmri_val)
+
     torch.cuda.empty_cache()
 
     print("________ Make Classifications ________")
+
+    print(train_img_list)
     lh_classifications_val = makeClassifications(val_images, idxs_val)
     rh_classifications_val = lh_classifications_val
-    torch.cuda.empty_cache()
+    print("lh class\n", lh_classifications_val)
     lh_classifications = makeClassifications(train_images, idxs_train)
     rh_classifications = lh_classifications
     torch.cuda.empty_cache()
@@ -100,34 +111,47 @@ def main():
     print("________ Extract Image Features ________")
 
     train_imgs_dataloader, val_imgs_dataloader, test_imgs_dataloader = (
-        data.transformData(train_img_dir, test_img_dir, idxs_train, idxs_val, idxs_test, 100))
+        data.transformData(train_img_dir, test_img_dir, idxs_train, idxs_val, idxs_test, 10))
 
     # Model for Images
     model_img = torch.hub.load('pytorch/vision:v0.10.0', 'mobilenet_v2', pretrained=True)
     model_img.to('cuda:1')  # send the model to the chosen device ('cpu' or 'cuda')
 
-
     features_train, features_val, features_test = (
         extract_data_features(model_img, train_imgs_dataloader, val_imgs_dataloader, test_imgs_dataloader, 50))
     del model_img
 
-    print("________ LEARN MORE ________")
-    dftrain, dftrainF = data.learnmore(lh_classifications, features_train, lh_fmri_train)
-    dfval, dfvalF = data.learnmore(lh_classifications_val, features_val, lh_fmri_val)
-    print("________ Predictions ________")
-    data.Predictions(dftrain, dftrainF, dfval, dfvalF)
-    exit()
-
     print("________ Combine Data ________")
-    lh_train_input = np.concatenate([lh_classifications, features_train], axis=1)
-    rh_train_input = np.concatenate([rh_classifications, features_train], axis=1)
-    lh_val_input = np.concatenate([lh_classifications_val, features_val], axis=1)
-    rh_val_input = np.concatenate([rh_classifications_val, features_val], axis=1)
+    dftrainL, dftrainFL = data.learnmore(lh_classifications, features_train, lh_fmri_train)
+    dfvalL, dfvalFL = data.learnmore(lh_classifications_val, features_val, lh_fmri_val)
+    lh_fmri_val_pred = data.Predictions(dftrainL, dftrainFL, dfvalL, dfvalFL)
+    dftrainR, dftrainFR = data.learnmore(rh_classifications, features_train, rh_fmri_train)
+    dfvalR, dfvalFR = data.learnmore(rh_classifications_val, features_val, rh_fmri_val)
+    rh_fmri_val_pred = data.Predictions(dftrainR, dftrainFR, dfvalR, dfvalFR)
+
+    # lh_train_input = np.concatenate([lh_classifications, features_train], axis=1)
+    # rh_train_input = np.concatenate([rh_classifications, features_train], axis=1)
+    # lh_val_input = np.concatenate([lh_classifications_val, features_val], axis=1)
+    # rh_val_input = np.concatenate([rh_classifications_val, features_val], axis=1)
 
     print("________ Make Predictions ________")
 
-    lh_fmri_val_pred = makePredictions(lh_train_input, lh_fmri_train, lh_val_input, lh_fmri_val)
-    rh_fmri_val_pred = makePredictions(rh_train_input, rh_fmri_train, rh_val_input, rh_fmri_val)
+    # lh_fmri_val_pred = makePredictions(lh_train_input, lh_fmri_train, lh_val_input, lh_fmri_val)
+    lh_fmri_val_pred = data.unnormalize_fmri_data(lh_fmri_val_pred, lh_data_min, lh_data_max)
+    # rh_fmri_val_pred = makePredictions(rh_train_input, rh_fmri_train, rh_val_input, rh_fmri_val)
+    rh_fmri_val_pred = data.unnormalize_fmri_data(rh_fmri_val_pred, rh_data_min, rh_data_max)
+
+    # lh_fmri_ROI_pred = makePredictions(lh_train_input, lh_train_ROI, lh_val_input, lh_val_ROI)
+    # rh_fmri_ROI_pred = makePredictions(rh_train_input, rh_train_ROI, rh_val_input, rh_val_ROI)
+
+    print("________ Visualize ________")
+    lh_fmri = np.load(os.path.join(fmri_dir, 'lh_training_fmri.npy'))
+    rh_fmri = np.load(os.path.join(fmri_dir, 'rh_training_fmri.npy'))
+
+    lh_correlation, rh_correlation = predAccuracy(lh_fmri_val_pred, lh_fmri_val, rh_fmri_val_pred, rh_fmri_val)
+
+
+    print("________ END ________")
 
     lh_avg = np.average(lh_fmri_val_pred - lh_fmri_val)
     rh_avg = np.average(rh_fmri_val_pred - rh_fmri_val)

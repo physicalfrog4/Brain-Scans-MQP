@@ -1,76 +1,70 @@
 import pandas as pd
-import torch
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 from ultralytics import YOLO
-from data import makeList
 
 
-def makePredictions(train, train_fmri, val, val_fmri):
+def Predictions(train, train_fmri, val, val_fmri):
+    print("PREDICTIONS")
+    train = train.to_numpy()
+    train_fmri = train_fmri.to_numpy()
+    val = val.to_numpy()
+    val_fmri = val_fmri.to_numpy()
+    # input train data
 
-    model = LinearRegression()
-    model.fit(train, train_fmri)
-    random_forest_predictions = model.predict(val)
+    random_forest_model = LinearRegression()
+    # random_forest_model = RidgeRegression()
+    random_forest_model.fit(train, train_fmri)
+    # print(val)
+
+    random_forest_predictions = random_forest_model.predict(val)
 
     print(val_fmri, "\n _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n", random_forest_predictions)
     random_forest_mse = mean_squared_error(val_fmri, random_forest_predictions)
-    print(f'Mean Squared Error: {random_forest_mse}')
-    accuracy_score = model.score(val, val_fmri)
-    print("Accuracy Score", accuracy_score)
+    print(f'Random Forest Mean Squared Error: {random_forest_mse}')
+    accuracy_score = random_forest_model.score(val, val_fmri)
 
+    print("accuracy score", accuracy_score)
+    print(len(random_forest_predictions))
 
     return random_forest_predictions
 
 
-def  makeClassifications(image_list, idxs, batch_size=100):
-    # w2v = api.load("word2vec-google-news-300")
+def makeClassifications(image_list, idxs, batch_size=250):
     modelYOLO = YOLO('yolov8n.pt')
     modelYOLO.to('cuda:1')
-
-    print(image_list)
-    results = []
-    index = 0
+    results = {}
 
     for start_idx in range(0, len(image_list), batch_size):
         end_idx = start_idx + batch_size
         batch_imgs = image_list[start_idx:end_idx]
+        batch_idxs = idxs[start_idx:end_idx]  # Ensure batch size matches
 
         # Perform predictions on the batch of images
         image_results = modelYOLO.predict(batch_imgs, stream=True)
-        # data = []
 
-        for result in image_results:
-            # print(idxs[index])
-            index = index + 1
-            # print(result)
-            # temp = []  # Use a set to store unique items
+        for i, result in enumerate(image_results):
             detection_count = result.boxes.shape[0]
+            image_idx = batch_idxs[i]
 
-            for i in range(min(detection_count, 3)):  # Limit to a maximum of 5 items
+            # Initialize count for the current image if not present in results
+            if image_idx not in results:
+                results[image_idx] = {'classifications': 0, 'data': []}
 
-                cls = int(result.boxes.cls[i].item())
-                name = result.names[cls]
-                confidence = float(result.boxes.conf[i].item())
-                # print(confidence)
-                # print(name, cls, confidence)
-                if confidence > 0.9:
-                    # temp.append(name)
-                    # temp.append(cls)
-                    bounding_box = result.boxes.xyxy[i].cpu().numpy()
+            for j in range(detection_count):
+                confidence = float(result.boxes.conf[j].item())
 
-                    # print("Bounding Box Coordinates:", bounding_box)
+                if confidence > 0.5 and results[image_idx]['classifications'] < 2:
+                    cls = int(result.boxes.cls[j].item())
+                    bounding_box = result.boxes.xyxy[j].cpu().numpy()
+                    results[image_idx]['data'].append(cls)
+                    results[image_idx]['classifications'] += 1
 
-                    #x1, y1, x2, y2 = map(int, bounding_box)
-                    results.append([index, cls])
-                    # print("Top-Left Corner (x1, y1):", x1, y1)
-                    # print("Bottom-Right Corner (x2, y2):", x2, y2)
-                    # print('\n')
-            # results.append(temp)
-        torch.cuda.empty_cache()
+    # Convert the dictionary to a list of tuples for the final output
+    final_results = [(image_idx, *data['data']) for image_idx, data in results.items()]
+    df = pd.DataFrame(final_results)
+    df = df.fillna(-1)
+    print(df)
+    final = df.to_numpy()
 
-    del modelYOLO
-    print(results)
-    #data = pd.DataFrame(results)
-    #data.fillna(-1, inplace=True)
-    #print(data)
-    return results
+    return final
