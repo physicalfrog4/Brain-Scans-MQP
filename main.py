@@ -53,7 +53,7 @@ def main():
 
     # Create lists will all training and test image file names, sorted
     train_img_list = os.listdir(train_img_dir)
-    train_img_list = train_img_list[: 1000]
+    #train_img_list = train_img_list[: 1000]
     train_img_list.sort()
     test_img_list = os.listdir(test_img_dir)
     test_img_list.sort()
