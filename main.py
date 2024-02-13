@@ -104,14 +104,14 @@ def main():
     print("________ Extract Image Features ________")
 
     train_imgs_dataloader, val_imgs_dataloader, test_imgs_dataloader = (
-        data.transformData(train_img_dir, test_img_dir, idxs_train, idxs_val, idxs_test, 500))
+        data.transformData(train_img_dir, test_img_dir, idxs_train, idxs_val, idxs_test, 64))
 
     # Model for Images
     model_img = torch.hub.load('pytorch/vision:v0.10.0', 'mobilenet_v2', pretrained=True)
     model_img.to('cuda:1')  # send the model to the chosen device ('cpu' or 'cuda')
 
     features_train, features_val, features_test = (
-        extract_data_features(model_img, train_imgs_dataloader, val_imgs_dataloader, test_imgs_dataloader, 500))
+        extract_data_features(model_img, train_imgs_dataloader, val_imgs_dataloader, test_imgs_dataloader, 64))
     del model_img
 
     print("________ LEARN MORE ________")
@@ -139,9 +139,20 @@ def main():
     # lh_fmri_ROI_pred = makePredictions(lh_train_input, lh_train_ROI, lh_val_input, lh_val_ROI)
     # rh_fmri_ROI_pred = makePredictions(rh_train_input, rh_train_ROI, rh_val_input, rh_val_ROI)
 
-    print("________ Results ________")
+    print("________ Normalize ________")
     lh_fmri = np.load(os.path.join(fmri_dir, 'lh_training_fmri.npy'))
     rh_fmri = np.load(os.path.join(fmri_dir, 'rh_training_fmri.npy'))
+
+    lh_fmri_val = lh_fmri[idxs_val]
+    rh_fmri_val = rh_fmri[idxs_val]
+
+    print(lh_data_min, lh_data_max)
+    print(rh_data_min, rh_data_max)
+
+    lh_fmri_val_pred = data.unnormalize_fmri_data(lh_fmri_val_pred, lh_data_min, lh_data_max)
+    rh_fmri_val_pred = data.unnormalize_fmri_data(rh_fmri_val_pred, rh_data_min, rh_data_max)
+
+    print("________ Results ________")
 
     lh_correlation, rh_correlation = predAccuracy(lh_fmri_val_pred, lh_fmri_val, rh_fmri_val_pred, rh_fmri_val)
     lh_avg = np.average(lh_fmri_val_pred - lh_fmri_val)

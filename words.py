@@ -26,7 +26,7 @@ def Predictions(train, train_fmri, val, val_fmri):
     return random_forest_predictions
 
 
-def makeClassifications(image_list, idxs, batch_size=250):
+def makeClassifications(image_list, idxs, batch_size=64):
     modelYOLO = YOLO('yolov8n.pt')
     modelYOLO.to('cuda:1')
     results = {}
