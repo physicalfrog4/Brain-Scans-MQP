@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import torch
 import data
-from words import makeClassifications
+from words import makeClassifications, Predictions
 from data import normalize_fmri_data
 from LEM import extract_data_features, predAccuracy
 
@@ -11,9 +11,8 @@ from LEM import extract_data_features, predAccuracy
 def main():
     if platform == 'jupyter_notebook':
         data_dir = '../MQP/algonauts_2023_challenge_data/'
-        data_dir = '../MQP/algonauts_2023_challenge_data/'
         parent_submission_dir = 'C:\GitHub\Brain-Scans-MQP\submissiondir'
-    subj = 5  # @param ["1", "2", "3", "4", "5", "6", "7", "8"] {type:"raw", allow-input: true}
+    subj = 1  # @param ["1", "2", "3", "4", "5", "6", "7", "8"] {type:"raw", allow-input: true}
     # args
     args = argObj(data_dir, parent_submission_dir, subj)
     fmri_dir = os.path.join(args.data_dir, 'training_split', 'training_fmri')
@@ -21,10 +20,6 @@ def main():
     rh_fmri = np.load(os.path.join(fmri_dir, 'rh_training_fmri.npy'))
 
 
-    #lh_data_min = np.min(lh_fmri)
-    #lh_data_max = np.max(lh_fmri)
-    #rh_data_min = np.min(rh_fmri)
-    #rh_data_max = np.max(rh_fmri)
 
     print("________ Process Data ________")
     # Normalize Data Before Split
@@ -109,57 +104,53 @@ def main():
     print("________ Extract Image Features ________")
 
     train_imgs_dataloader, val_imgs_dataloader, test_imgs_dataloader = (
-        data.transformData(train_img_dir, test_img_dir, idxs_train, idxs_val, idxs_test, 10))
+        data.transformData(train_img_dir, test_img_dir, idxs_train, idxs_val, idxs_test, 500))
 
     # Model for Images
     model_img = torch.hub.load('pytorch/vision:v0.10.0', 'mobilenet_v2', pretrained=True)
     model_img.to('cuda:1')  # send the model to the chosen device ('cpu' or 'cuda')
 
     features_train, features_val, features_test = (
-        extract_data_features(model_img, train_imgs_dataloader, val_imgs_dataloader, test_imgs_dataloader, 50))
+        extract_data_features(model_img, train_imgs_dataloader, val_imgs_dataloader, test_imgs_dataloader, 500))
     del model_img
 
-    print("________ Combine Data ________")
+    print("________ LEARN MORE ________")
     dftrainL, dftrainFL = data.learnmore(lh_classifications, features_train, lh_fmri_train)
     dfvalL, dfvalFL = data.learnmore(lh_classifications_val, features_val, lh_fmri_val)
-    lh_fmri_val_pred = data.Predictions(dftrainL, dftrainFL, dfvalL, dfvalFL)
     dftrainR, dftrainFR = data.learnmore(rh_classifications, features_train, rh_fmri_train)
     dfvalR, dfvalFR = data.learnmore(rh_classifications_val, features_val, rh_fmri_val)
-    rh_fmri_val_pred = data.Predictions(dftrainR, dftrainFR, dfvalR, dfvalFR)
+
+    print("________ Predictions ________")
+    lh_fmri_val_pred = Predictions(dftrainL, dftrainFL, dfvalL, dfvalFL)
+    rh_fmri_val_pred = Predictions(dftrainR, dftrainFR, dfvalR, dfvalFR)
 
     # lh_train_input = np.concatenate([lh_classifications, features_train], axis=1)
     # rh_train_input = np.concatenate([rh_classifications, features_train], axis=1)
     # lh_val_input = np.concatenate([lh_classifications_val, features_val], axis=1)
     # rh_val_input = np.concatenate([rh_classifications_val, features_val], axis=1)
 
-    print("________ Make Predictions ________")
+    # print("________ Make Predictions ________")
 
     # lh_fmri_val_pred = makePredictions(lh_train_input, lh_fmri_train, lh_val_input, lh_fmri_val)
-    lh_fmri_val_pred = data.unnormalize_fmri_data(lh_fmri_val_pred, lh_data_min, lh_data_max)
+    #lh_fmri_val_pred = data.unnormalize_fmri_data(lh_fmri_val_pred, lh_data_min, lh_data_max)
     # rh_fmri_val_pred = makePredictions(rh_train_input, rh_fmri_train, rh_val_input, rh_fmri_val)
-    rh_fmri_val_pred = data.unnormalize_fmri_data(rh_fmri_val_pred, rh_data_min, rh_data_max)
+    #rh_fmri_val_pred = data.unnormalize_fmri_data(rh_fmri_val_pred, rh_data_min, rh_data_max)
 
     # lh_fmri_ROI_pred = makePredictions(lh_train_input, lh_train_ROI, lh_val_input, lh_val_ROI)
     # rh_fmri_ROI_pred = makePredictions(rh_train_input, rh_train_ROI, rh_val_input, rh_val_ROI)
 
-    print("________ Visualize ________")
+    print("________ Results ________")
     lh_fmri = np.load(os.path.join(fmri_dir, 'lh_training_fmri.npy'))
     rh_fmri = np.load(os.path.join(fmri_dir, 'rh_training_fmri.npy'))
 
     lh_correlation, rh_correlation = predAccuracy(lh_fmri_val_pred, lh_fmri_val, rh_fmri_val_pred, rh_fmri_val)
-
-
-    print("________ END ________")
-
     lh_avg = np.average(lh_fmri_val_pred - lh_fmri_val)
     rh_avg = np.average(rh_fmri_val_pred - rh_fmri_val)
 
     print("LH AVG ", lh_avg)
     print("RH AVG ", rh_avg)
 
-
-
-    print("________ End ________")
+    print("________ END ________")
 
 
 class argObj:

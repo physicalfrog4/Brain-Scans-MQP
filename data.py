@@ -87,7 +87,7 @@ class ImageDataset(Dataset):
 
 
 def normalize_fmri_data(data):
-    clip_percentile = 0.01
+    clip_percentile = 0.05
     # Clip extreme values to handle outliers
     min_clip = np.percentile(data, clip_percentile)
     max_clip = np.percentile(data, 100 - clip_percentile)
@@ -98,6 +98,7 @@ def normalize_fmri_data(data):
     # Scale the clipped data to the range [0, 1]
     min_value = np.min(clipped_data)
     max_value = np.max(clipped_data)
+    print(min_value, max_value)
 
     if max_value == min_value:
         # Handle the case where all values are the same to avoid division by zero
@@ -120,15 +121,13 @@ def unnormalize_fmri_data(normalized_data, min_value, max_value, clip_percentile
     return unnormalized_data
 
 
+
 def makeList(train_img_dir, train_img_list, idxs_val):
     val_img_list = []
     for i in idxs_val:
-        # print(i)
         img_dir = os.path.join(train_img_dir, train_img_list[i])
-        # train_img = Image.open(img_dir).convert('RGB')
-        # print(train_img)
         val_img_list.append(img_dir)
-    # print("Make List\n", val_img_list)
+
     return val_img_list
 
 
@@ -137,6 +136,7 @@ def createDataFrame(idxs, fmri):
     df2 = pd.DataFrame(fmri)
     df = pd.concat([df1, df2], axis=1)
     df_final = pd.DataFrame(df)
+    df_final = df_final.to_numpy()
     print(df_final)
     return df_final
 
@@ -199,124 +199,33 @@ def dfROI(args, hemi, idxs, lh_fmri, rh_fmri):
     return df
 
 
-def makeList(train_img_dir, train_img_list, idxs_val):
-    val_img_list = []
-    for i in idxs_val:
-        # print(i)
-        img_dir = os.path.join(train_img_dir, train_img_list[i])
-        train_img = Image.open(img_dir).convert('RGB')
-        # print(train_img)
-        val_img_list.append(img_dir)
-    # print("Make List\n", val_img_list)
-    return val_img_list
-
-
-def Predictions(train, train_fmri, val, val_fmri):
-    print("PREDICTIONS")
-    train = train.to_numpy()
-    train_fmri = train_fmri.to_numpy()
-    val = val.to_numpy()
-    val_fmri = val_fmri.to_numpy()
-    # input train data
-
-    random_forest_model = LinearRegression()
-    # random_forest_model = RidgeRegression()
-    random_forest_model.fit(train, train_fmri)
-    #print(val)
-
-    random_forest_predictions = random_forest_model.predict(val)
-
-    print(val_fmri, "\n _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n", random_forest_predictions)
-    random_forest_mse = mean_squared_error(val_fmri, random_forest_predictions)
-    print(f'Random Forest Mean Squared Error: {random_forest_mse}')
-    accuracy_score = random_forest_model.score(val, val_fmri)
-
-    print("accuracy score", accuracy_score)
-    print(len(random_forest_predictions))
-
-    return random_forest_predictions
-
-
 def learnmore(classifications, image_data, fmri_data):
     print("START OF LEARN MORE FUNCTION")
-    # print(classifications)
-
-    numClass = len(classifications)
-    print(numClass)
-    numImages = len(image_data)
-    print(numImages)
-    print(len(fmri_data))
-    print(fmri_data)
 
     results = []
     fmri = []
-    temp = []
-    previousIMG = classifications[0][1]
     index = 0
 
     for j in enumerate(classifications):
-        print("index", index)
-        # image = classifications[j]
-        # idx = image[0]  # Assuming the first element is the index
-        # imgNum = j[1][0]
-
-        print("Image: ", j[1][0])
-        img = j[1][0]
-        #print(img)
-        img = int(img)
-        #print("Cat 1: ", j[1][1])
-        #print("Cat 2: ", j[1][2])
-        # results.append(j)
-        # Image Categories
+        # Image NUM
         arr = []
         arr.append((j[1][1]))
         arr.append((j[1][2]))
         arr = list(arr)
-        print(arr)
 
         # Image Data
-
         arr0 = (np.array(image_data[index])).tolist()
-        #print("image data\n", arr0)
-        #arr.append(arr0)
-        print(arr0)
         new_list = arr + arr0
-
-        #arr2 = arr.append(arr0)
-        #print(arr2)
-        # print(arr0)
-        # arr2 = np.concatenate(arr, arr0)
-        # print(arr2)
         results.append(new_list)
 
         # FMRI Data
         fmri.append(np.array(fmri_data[index]))
         index = index + 1
 
-        # if 0 <= idx < numImages:  # Ensure index is within bounds
-        # print(idx)
-        # arr0 = np.array(image_data[j])
-        # print(arr0)
-        # results.append(arr0)
-        # arr = np.array(fmri_data[j])
-        # fmri.append(arr)
-        # else:
-        #    print(f"Index {idx} is out of bounds for image_data")
-
     df = pd.DataFrame(results)
-
     df1 = pd.DataFrame(fmri)
-    # print(fmri)
+
     print(df)
     print(df1)
 
-    # exit()
-    # print(results)
-    # print(fmri)
     return df, df1
-
-
-
-def unnormalize_fmri_data(normalized_data, original_min, original_max):
-    unnormalized_data = normalized_data * (original_max - original_min) + original_min
-    return unnormalized_data

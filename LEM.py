@@ -60,19 +60,22 @@ def linearMap(features_train, lh_fmri_train, rh_fmri_train, features_val, featur
 
 def predAccuracy(lh_fmri_val_pred, lh_fmri_val, rh_fmri_val_pred, rh_fmri_val):
     print("Start PredAccuracy")
+    print("\npredicted\n", lh_fmri_val_pred, "\nactual\n", lh_fmri_val)
+
     # Empty correlation array of shape: (LH vertices)
     lh_correlation = np.zeros(lh_fmri_val_pred.shape[1])
-    # Correlate each predicted LH vertex with the corresponding ground truth vertex
 
+    # Correlate each predicted LH vertex with the corresponding ground truth vertex
     for v in tqdm(range(lh_fmri_val_pred.shape[1])):
         lh_correlation[v] = corr(lh_fmri_val_pred[:, v], lh_fmri_val[:, v])[0]
 
     # Empty correlation array of shape: (RH vertices)
     rh_correlation = np.zeros(rh_fmri_val_pred.shape[1])
+
     # Correlate each predicted RH vertex with the corresponding ground truth vertex
     for v in tqdm(range(rh_fmri_val_pred.shape[1])):
         rh_correlation[v] = corr(rh_fmri_val_pred[:, v], rh_fmri_val[:, v])[0]
-    # print the results (*100 because I like how it looks)
+
     print('average lh ', average(lh_correlation) * 100, 'average rh ', average(rh_correlation) * 100)
     return lh_correlation, rh_correlation
 

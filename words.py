@@ -13,25 +13,22 @@ def Predictions(train, train_fmri, val, val_fmri):
     # input train data
 
     random_forest_model = LinearRegression()
-    # random_forest_model = RidgeRegression()
     random_forest_model.fit(train, train_fmri)
-    # print(val)
-
     random_forest_predictions = random_forest_model.predict(val)
+    print(random_forest_predictions)
 
-    print(val_fmri, "\n _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n", random_forest_predictions)
     random_forest_mse = mean_squared_error(val_fmri, random_forest_predictions)
     print(f'Random Forest Mean Squared Error: {random_forest_mse}')
-    accuracy_score = random_forest_model.score(val, val_fmri)
 
+    accuracy_score = random_forest_model.score(val, val_fmri)
     print("accuracy score", accuracy_score)
-    print(len(random_forest_predictions))
 
     return random_forest_predictions
 
 
 def makeClassifications(image_list, idxs, batch_size=250):
     modelYOLO = YOLO('yolov8n.pt')
+    modelYOLO.to('cuda:1')
     results = {}
 
     for start_idx in range(0, len(image_list), batch_size):
@@ -67,3 +64,4 @@ def makeClassifications(image_list, idxs, batch_size=250):
     final = df.to_numpy()
 
     return final
+
