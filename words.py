@@ -32,7 +32,6 @@ def Predictions(train, train_fmri, val, val_fmri):
 
 def makeClassifications(image_list, idxs, batch_size=250):
     modelYOLO = YOLO('yolov8n.pt')
-    modelYOLO.to('cuda:1')
     results = {}
 
     for start_idx in range(0, len(image_list), batch_size):

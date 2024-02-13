@@ -87,25 +87,37 @@ class ImageDataset(Dataset):
 
 
 def normalize_fmri_data(data):
-    # Shift the data so that the minimum value becomes zero
-    min_value = np.min(data)
-    shifted_data = data - min_value
+    clip_percentile = 0.01
+    # Clip extreme values to handle outliers
+    min_clip = np.percentile(data, clip_percentile)
+    max_clip = np.percentile(data, 100 - clip_percentile)
+    print(min_clip, max_clip)
 
-    # Scale the data to the range [0, 1]
-    max_value = np.max(shifted_data)
-    print(min_value, max_value)
+    clipped_data = np.clip(data, min_clip, max_clip)
 
-    if max_value == 0:
-        # Handle the case where all values are zero to avoid division by zero
-        normalized_data = shifted_data
+    # Scale the clipped data to the range [0, 1]
+    min_value = np.min(clipped_data)
+    max_value = np.max(clipped_data)
+
+    if max_value == min_value:
+        # Handle the case where all values are the same to avoid division by zero
+        normalized_data = np.zeros_like(clipped_data)
     else:
-        normalized_data = shifted_data / max_value
+        normalized_data = (clipped_data - min_value) / (max_value - min_value)
 
-    return normalized_data
-    # min_value = np.min(data)
-    # max_value = np.max(data)
-    # normalized_data = (data - min_value) / (max_value - min_value)
-    # return normalized_data
+    return normalized_data, min_value, max_value
+
+
+def unnormalize_fmri_data(normalized_data, min_value, max_value, clip_percentile=0.05):
+    # Reverse the normalization process
+    unnormalized_data = normalized_data * (max_value - min_value) + min_value
+
+    # Clip extreme values to handle outliers
+    min_clip = np.percentile(unnormalized_data, clip_percentile)
+    max_clip = np.percentile(unnormalized_data, 100 - clip_percentile)
+    unnormalized_data = np.clip(unnormalized_data, min_clip, max_clip)
+
+    return unnormalized_data
 
 
 def makeList(train_img_dir, train_img_list, idxs_val):
@@ -243,10 +255,19 @@ def learnmore(classifications, image_data, fmri_data):
     index = 0
 
     for j in enumerate(classifications):
+        print("index", index)
+        # image = classifications[j]
+        # idx = image[0]  # Assuming the first element is the index
+        # imgNum = j[1][0]
 
+        print("Image: ", j[1][0])
         img = j[1][0]
-        # print(img)
+        #print(img)
         img = int(img)
+        #print("Cat 1: ", j[1][1])
+        #print("Cat 2: ", j[1][2])
+        # results.append(j)
+        # Image Categories
         arr = []
         arr.append((j[1][1]))
         arr.append((j[1][2]))
@@ -256,15 +277,31 @@ def learnmore(classifications, image_data, fmri_data):
         # Image Data
 
         arr0 = (np.array(image_data[index])).tolist()
-
+        #print("image data\n", arr0)
+        #arr.append(arr0)
         print(arr0)
         new_list = arr + arr0
 
+        #arr2 = arr.append(arr0)
+        #print(arr2)
+        # print(arr0)
+        # arr2 = np.concatenate(arr, arr0)
+        # print(arr2)
         results.append(new_list)
 
         # FMRI Data
         fmri.append(np.array(fmri_data[index]))
         index = index + 1
+
+        # if 0 <= idx < numImages:  # Ensure index is within bounds
+        # print(idx)
+        # arr0 = np.array(image_data[j])
+        # print(arr0)
+        # results.append(arr0)
+        # arr = np.array(fmri_data[j])
+        # fmri.append(arr)
+        # else:
+        #    print(f"Index {idx} is out of bounds for image_data")
 
     df = pd.DataFrame(results)
 
@@ -273,7 +310,11 @@ def learnmore(classifications, image_data, fmri_data):
     print(df)
     print(df1)
 
+    # exit()
+    # print(results)
+    # print(fmri)
     return df, df1
+
 
 
 def unnormalize_fmri_data(normalized_data, original_min, original_max):

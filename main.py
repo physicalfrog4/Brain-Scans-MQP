@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import torch
 import data
-from words import makeClassifications, makePredictions
+from words import makeClassifications
 from data import normalize_fmri_data
 from LEM import extract_data_features, predAccuracy
 
@@ -21,17 +21,17 @@ def main():
     rh_fmri = np.load(os.path.join(fmri_dir, 'rh_training_fmri.npy'))
 
 
-    lh_data_min = np.min(lh_fmri)
-    lh_data_max = np.max(lh_fmri)
-    rh_data_min = np.min(rh_fmri)
-    rh_data_max = np.max(rh_fmri)
+    #lh_data_min = np.min(lh_fmri)
+    #lh_data_max = np.max(lh_fmri)
+    #rh_data_min = np.min(rh_fmri)
+    #rh_data_max = np.max(rh_fmri)
 
     print("________ Process Data ________")
     # Normalize Data Before Split
-    lh_fmri = normalize_fmri_data(lh_fmri)
+    lh_fmri, lh_data_min, lh_data_max = normalize_fmri_data(lh_fmri)
     print(lh_fmri)
     print("- - - - - - - -")
-    rh_fmri = normalize_fmri_data(rh_fmri)
+    rh_fmri, rh_data_min, rh_data_max = normalize_fmri_data(rh_fmri)
     print(rh_fmri)
 
     print('LH training fMRI data shape:')
@@ -53,7 +53,6 @@ def main():
 
     # Create lists will all training and test image file names, sorted
     train_img_list = os.listdir(train_img_dir)
-    #train_img_list = train_img_list[: 1000]
     train_img_list.sort()
     test_img_list = os.listdir(test_img_dir)
     test_img_list.sort()
@@ -77,7 +76,7 @@ def main():
     train_images = data.makeList(train_img_dir, train_img_list, idxs_train)
     val_images = data.makeList(train_img_dir, train_img_list, idxs_val)
     test_images = data.makeList(test_img_dir, test_img_list, idxs_test)
-    # print(train_images)
+
 
     print("________ Create Dataframe For ROI ________")
 
@@ -100,10 +99,9 @@ def main():
 
     print("________ Make Classifications ________")
 
-    print(train_img_list)
+
     lh_classifications_val = makeClassifications(val_images, idxs_val)
     rh_classifications_val = lh_classifications_val
-    print("lh class\n", lh_classifications_val)
     lh_classifications = makeClassifications(train_images, idxs_train)
     rh_classifications = lh_classifications
     torch.cuda.empty_cache()
@@ -159,7 +157,7 @@ def main():
     print("LH AVG ", lh_avg)
     print("RH AVG ", rh_avg)
 
-    predAccuracy(lh_fmri_val_pred, lh_fmri_val, rh_fmri_val_pred, rh_fmri_val)
+
 
     print("________ End ________")
 
