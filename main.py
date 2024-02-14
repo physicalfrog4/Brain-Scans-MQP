@@ -7,7 +7,7 @@ from sklearn.model_selection import KFold
 
 import data
 from words import makeClassifications, predictions
-from data import normalize_fmri_data
+from data import normalize_fmri_data, learnmore, transformData
 from LEM import extract_data_features, predAccuracy
 
 
@@ -106,54 +106,70 @@ def main():
 
     print("________ Extract Image Features ________")
 
-    train_imgs_dataloader, val_imgs_dataloader, test_imgs_dataloader = (
-        data.transformData(train_img_dir, test_img_dir, idxs_train, idxs_val, idxs_test, 64))
+    train_imgs_dataloader, val_imgs_dataloader, test_imgs_dataloader = \
+        transformData(train_img_dir, test_img_dir, idxs_train, idxs_val, idxs_test, 64)
+    # model_img = torch.hub.load('pytorch/vision:v0.10.0', 'mobilenet_v2', pretrained=True)
+    model_img = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', pretrained=True)
+    # or any of these variants
+    # model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet34', pretrained=True)
+    # model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet50', pretrained=True)
+    # model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet101', pretrained=True)
+    # model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet152', pretrained=True)
+    model_img.eval()
+    model_img.to('cuda:0')
 
-    # Model for Images
-    model_img = torch.hub.load('pytorch/vision:v0.10.0', 'mobilenet_v2', pretrained=True)
-    model_img.to('cuda:1')  # send the model to the chosen device ('cpu' or 'cuda')
-
-    features_train, features_val, features_test = (
-        extract_data_features(model_img, train_imgs_dataloader, val_imgs_dataloader, test_imgs_dataloader, 64))
+    features_train, features_val, features_test = \
+        extract_data_features(model_img, train_imgs_dataloader, val_imgs_dataloader, test_imgs_dataloader, 64)
     del model_img
 
     print("________ LEARN MORE ________")
-    dftrainL, dftrainFL = data.learnmore(lh_classifications, features_train, lh_fmri_train)
-    dfvalL, dfvalFL = data.learnmore(lh_classifications_val, features_val, lh_fmri_val)
-    dftrainR, dftrainFR = data.learnmore(rh_classifications, features_train, rh_fmri_train)
-    dfvalR, dfvalFR = data.learnmore(rh_classifications_val, features_val, rh_fmri_val)
+    # model = LinearRegression()
+    dftrainL, dftrainFL = learnmore(lh_classifications, features_train, lh_fmri_train)
+    dfvalL, dfvalFL = learnmore(lh_classifications_val, features_val, lh_fmri_val)
+    dftrainR, dftrainFR = learnmore(rh_classifications, features_train, rh_fmri_train)
+    dfvalR, dfvalFR = learnmore(rh_classifications_val, features_val, rh_fmri_val)
 
     dftrainL = np.array(dftrainL)
     dftrainFL = np.array(dftrainFL)
     dfvalL = np.array(dfvalL)
     dfvalFL = np.array(dfvalFL)
 
+    dftrainR = np.array(dftrainR)
+    dftrainFR = np.array(dftrainFR)
+    dfvalR = np.array(dfvalR)
+    dfvalFR = np.array(dfvalFR)
+
     features_combined = np.concatenate([dftrainL, dfvalL], axis=0)
     fmri_combined = np.concatenate([dftrainFL, dfvalFL], axis=0)
 
+    features_combined2 = np.concatenate([dftrainR, dfvalR], axis=0)
+    fmri_combined2 = np.concatenate([dftrainFR, dfvalFR], axis=0)
+
     # Perform k-fold cross-validation for training your model
-    kf = KFold(n_splits=100, shuffle=True, random_state=42)
+    kf = KFold(n_splits=100, shuffle=True)
 
     for train_index, val_index in kf.split(features_combined):
         X_train, X_val = features_combined[train_index], features_combined[val_index]
         y_train, y_val = fmri_combined[train_index], fmri_combined[val_index]
-
         # Train your model
         model = train_model(X_train, y_train)
-
-        # Make predictions on the validation set
         y_val_pred = model.predict(X_val)
-
-        # Evaluate the predictions (you may want to modify this based on your specific evaluation metrics)
         accuracy = model.score(X_val, y_val)
-        print("Validation Accuracy:", accuracy)
+        print("Validation Accuracy1:", accuracy)
 
-    # After cross-validation, you can train the final model on the entire training set
+        X_train2, X_val2 = features_combined2[train_index], features_combined2[val_index]
+        y_train2, y_val2 = fmri_combined2[train_index], fmri_combined2[val_index]
+        model = train_model(X_train2, y_train2)
+        y_val_pred2 = model.predict(X_val2)
+        accuracy2 = model.score(X_val2, y_val2)
+        print("Validation Accuracy2:", accuracy2)
     final_model = train_model(features_combined, fmri_combined)
-    new_model = LinearRegression()
+    final_model = train_model(features_combined2, fmri_combined2)
+
     print("________ Predictions ________")
     lh_fmri_val_pred = predictions(dftrainL, dftrainFL, dfvalL, dfvalFL, final_model)
-    rh_fmri_val_pred = predictions(dftrainR, dftrainFR, dfvalR, dfvalFR, new_model)
+    rh_fmri_val_pred = predictions(dftrainR, dftrainFR, dfvalR, dfvalFR, final_model)
+
     print("________ Normalize ________")
     lh_fmri = np.load(os.path.join(fmri_dir, 'lh_training_fmri.npy'))
     rh_fmri = np.load(os.path.join(fmri_dir, 'rh_training_fmri.npy'))
@@ -190,16 +206,16 @@ class argObj:
         # Create the submission directory if not existing
         # if not os.path.isdir(self.subject_submission_dir):
         # os.makedirs(self.subject_submission_dir)
-def train_model(X, y):
+def train_model(X, y, model):
     # Define your model here (modify as needed)
-    model = LinearRegression()  # Change this to the appropriate model
+    # Change this to the appropriate model
     model.fit(X, y)
     return model
 
 
 if __name__ == "__main__":
     platform = 'jupyter_notebook'  # @param ['colab', 'jupyter_notebook'] {allow-input: true}
-    device = 'cuda'  # @param ['cpu', 'cuda'] {allow-input: true}
+    device = 'cuda:0'  # @param ['cpu', 'cuda'] {allow-input: true}
     device = torch.device(device)
 
     main()

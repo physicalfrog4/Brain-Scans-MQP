@@ -4,7 +4,7 @@ from sklearn.metrics import mean_squared_error
 from ultralytics import YOLO
 
 
-def predictions(train, train_fmri, val, val_fmri):
+def predictions(train, train_fmri, val, val_fmri, model):
     print("PREDICTIONS")
     #train = train.to_numpy()
     #train_fmri = train_fmri.to_numpy()
@@ -12,7 +12,7 @@ def predictions(train, train_fmri, val, val_fmri):
     #val_fmri = val_fmri.to_numpy()
     # input train data
 
-    random_forest_model = LinearRegression()
+    random_forest_model = model
     random_forest_model.fit(train, train_fmri)
     random_forest_predictions = random_forest_model.predict(val)
     print(random_forest_predictions)
@@ -28,7 +28,7 @@ def predictions(train, train_fmri, val, val_fmri):
 
 def makeClassifications(image_list, idxs, batch_size=64):
     modelYOLO = YOLO('yolov8n.pt')
-    modelYOLO.to('cuda:1')
+    modelYOLO.to('cuda:0')
     results = {}
 
     for start_idx in range(0, len(image_list), batch_size):
