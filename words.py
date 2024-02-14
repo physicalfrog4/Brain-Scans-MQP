@@ -4,12 +4,12 @@ from sklearn.metrics import mean_squared_error
 from ultralytics import YOLO
 
 
-def Predictions(train, train_fmri, val, val_fmri):
+def predictions(train, train_fmri, val, val_fmri):
     print("PREDICTIONS")
-    train = train.to_numpy()
-    train_fmri = train_fmri.to_numpy()
-    val = val.to_numpy()
-    val_fmri = val_fmri.to_numpy()
+    #train = train.to_numpy()
+    #train_fmri = train_fmri.to_numpy()
+    #val = val.to_numpy()
+    #val_fmri = val_fmri.to_numpy()
     # input train data
 
     random_forest_model = LinearRegression()

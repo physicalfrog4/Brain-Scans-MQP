@@ -2,8 +2,11 @@ import os
 import numpy as np
 import pandas as pd
 import torch
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import KFold
+
 import data
-from words import makeClassifications, Predictions
+from words import makeClassifications, predictions
 from data import normalize_fmri_data
 from LEM import extract_data_features, predAccuracy
 
@@ -120,25 +123,37 @@ def main():
     dftrainR, dftrainFR = data.learnmore(rh_classifications, features_train, rh_fmri_train)
     dfvalR, dfvalFR = data.learnmore(rh_classifications_val, features_val, rh_fmri_val)
 
+    dftrainL = np.array(dftrainL)
+    dftrainFL = np.array(dftrainFL)
+    dfvalL = np.array(dfvalL)
+    dfvalFL = np.array(dfvalFL)
+
+    features_combined = np.concatenate([dftrainL, dfvalL], axis=0)
+    fmri_combined = np.concatenate([dftrainFL, dfvalFL], axis=0)
+
+    # Perform k-fold cross-validation for training your model
+    kf = KFold(n_splits=100, shuffle=True, random_state=42)
+
+    for train_index, val_index in kf.split(features_combined):
+        X_train, X_val = features_combined[train_index], features_combined[val_index]
+        y_train, y_val = fmri_combined[train_index], fmri_combined[val_index]
+
+        # Train your model
+        model = train_model(X_train, y_train)
+
+        # Make predictions on the validation set
+        y_val_pred = model.predict(X_val)
+
+        # Evaluate the predictions (you may want to modify this based on your specific evaluation metrics)
+        accuracy = model.score(X_val, y_val)
+        print("Validation Accuracy:", accuracy)
+
+    # After cross-validation, you can train the final model on the entire training set
+    final_model = train_model(features_combined, fmri_combined)
+    new_model = LinearRegression()
     print("________ Predictions ________")
-    lh_fmri_val_pred = Predictions(dftrainL, dftrainFL, dfvalL, dfvalFL)
-    rh_fmri_val_pred = Predictions(dftrainR, dftrainFR, dfvalR, dfvalFR)
-
-    # lh_train_input = np.concatenate([lh_classifications, features_train], axis=1)
-    # rh_train_input = np.concatenate([rh_classifications, features_train], axis=1)
-    # lh_val_input = np.concatenate([lh_classifications_val, features_val], axis=1)
-    # rh_val_input = np.concatenate([rh_classifications_val, features_val], axis=1)
-
-    # print("________ Make Predictions ________")
-
-    # lh_fmri_val_pred = makePredictions(lh_train_input, lh_fmri_train, lh_val_input, lh_fmri_val)
-    #lh_fmri_val_pred = data.unnormalize_fmri_data(lh_fmri_val_pred, lh_data_min, lh_data_max)
-    # rh_fmri_val_pred = makePredictions(rh_train_input, rh_fmri_train, rh_val_input, rh_fmri_val)
-    #rh_fmri_val_pred = data.unnormalize_fmri_data(rh_fmri_val_pred, rh_data_min, rh_data_max)
-
-    # lh_fmri_ROI_pred = makePredictions(lh_train_input, lh_train_ROI, lh_val_input, lh_val_ROI)
-    # rh_fmri_ROI_pred = makePredictions(rh_train_input, rh_train_ROI, rh_val_input, rh_val_ROI)
-
+    lh_fmri_val_pred = predictions(dftrainL, dftrainFL, dfvalL, dfvalFL, final_model)
+    rh_fmri_val_pred = predictions(dftrainR, dftrainFR, dfvalR, dfvalFR, new_model)
     print("________ Normalize ________")
     lh_fmri = np.load(os.path.join(fmri_dir, 'lh_training_fmri.npy'))
     rh_fmri = np.load(os.path.join(fmri_dir, 'rh_training_fmri.npy'))
@@ -175,6 +190,11 @@ class argObj:
         # Create the submission directory if not existing
         # if not os.path.isdir(self.subject_submission_dir):
         # os.makedirs(self.subject_submission_dir)
+def train_model(X, y):
+    # Define your model here (modify as needed)
+    model = LinearRegression()  # Change this to the appropriate model
+    model.fit(X, y)
+    return model
 
 
 if __name__ == "__main__":
