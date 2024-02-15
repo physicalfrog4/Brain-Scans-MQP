@@ -82,7 +82,7 @@ class ImageDataset(Dataset):
         img = Image.open(img_path).convert('RGB')
         # Preprocess the image and send it to the chosen device ('cpu' or 'cuda')
         if self.transform:
-            img = self.transform(img).to('cuda:0')
+            img = self.transform(img).to('cuda:1')
         return img
 
 
@@ -125,7 +125,10 @@ def unnormalize_fmri_data(normalized_data, min_value, max_value, clip_percentile
 def makeList(train_img_dir, train_img_list, idxs_val):
     val_img_list = []
     for i in idxs_val:
+        # print(i)
         img_dir = os.path.join(train_img_dir, train_img_list[i])
+        # train_img = Image.open(img_dir).convert('RGB')
+        # print(train_img)
         val_img_list.append(img_dir)
 
     return val_img_list
@@ -229,3 +232,8 @@ def learnmore(classifications, image_data, fmri_data):
     print(df1)
 
     return df, df1
+
+
+def unnormalize_fmri_data(normalized_data, original_min, original_max):
+    unnormalized_data = normalized_data * (original_max - original_min) + original_min
+    return unnormalized_data
