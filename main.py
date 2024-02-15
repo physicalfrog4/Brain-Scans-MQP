@@ -13,11 +13,14 @@ from LEM import extract_data_features, predAccuracy
 
 def main():
     if platform == 'jupyter_notebook':
-        data_dir = '../MQP/algonauts_2023_challenge_data/'
+
         data_dir = '../MQP/algonauts_2023_challenge_data/'
         parent_submission_dir = 'C:\GitHub\Brain-Scans-MQP\submissiondir'
     subj = 5  # @param ["1", "2", "3", "4", "5", "6", "7", "8"] {type:"raw", allow-input: true}
-    for subj in range(1,8):
+    # SuperDuperModel = LinearRegression()
+    all_feautrese = []
+    all_fmri = []
+    for subj in range(1, 9):
         args = argObj(data_dir, parent_submission_dir, subj)
         fmri_dir = os.path.join(args.data_dir, 'training_split', 'training_fmri')
         lh_fmri = np.load(os.path.join(fmri_dir, 'lh_training_fmri.npy'))
@@ -107,42 +110,36 @@ def main():
         dftrainR, dftrainFR = learnmore(rh_classifications, features_train, rh_fmri_train)
         dfvalR, dfvalFR = learnmore(rh_classifications_val, features_val, rh_fmri_val)
 
-        dftrainL = np.array(dftrainL)
-        dftrainFL = np.array(dftrainFL)
-        dfvalL = np.array(dfvalL)
-        dfvalFL = np.array(dfvalFL)
 
-        dftrainR = np.array(dftrainR)
-        dftrainFR = np.array(dftrainFR)
-        dfvalR = np.array(dfvalR)
-        dfvalFR = np.array(dfvalFR)
 
         features_combined = np.concatenate([dftrainL, dfvalL], axis=0)
         fmri_combined = np.concatenate([dftrainFL, dfvalFL], axis=0)
+        all_feautrese.append(features_combined)
+        all_fmri.append(fmri_combined)
 
         features_combined2 = np.concatenate([dftrainR, dfvalR], axis=0)
         fmri_combined2 = np.concatenate([dftrainFR, dfvalFR], axis=0)
 
         # Perform k-fold cross-validation for training your model
-        kf = KFold(n_splits=100, shuffle=True)
+        kf = KFold(n_splits=10, shuffle=True)
 
         for train_index, val_index in kf.split(features_combined):
             X_train, X_val = features_combined[train_index], features_combined[val_index]
             y_train, y_val = fmri_combined[train_index], fmri_combined[val_index]
             # Train your model
-            model = train_model(X_train, y_train)
+            model = train_model(X_train, y_train, SuperDuperModel)
             y_val_pred = model.predict(X_val)
             accuracy = model.score(X_val, y_val)
             print("Validation Accuracy1:", accuracy)
 
             X_train2, X_val2 = features_combined2[train_index], features_combined2[val_index]
             y_train2, y_val2 = fmri_combined2[train_index], fmri_combined2[val_index]
-            model = train_model(X_train2, y_train2)
+            model = train_model(X_train2, y_train2, SuperDuperModel)
             y_val_pred2 = model.predict(X_val2)
             accuracy2 = model.score(X_val2, y_val2)
             print("Validation Accuracy2:", accuracy2)
-        final_model = train_model(features_combined, fmri_combined)
-        final_model = train_model(features_combined2, fmri_combined2)
+        final_model = train_model(features_combined, fmri_combined, SuperDuperModel)
+        final_model = train_model(features_combined2, fmri_combined2, SuperDuperModel)
 
         print("________ Predictions ________")
         lh_fmri_val_pred = predictions(dftrainL, dftrainFL, dfvalL, dfvalFL, final_model)
@@ -171,7 +168,9 @@ def main():
         print("LH AVG ", lh_avg)
         print("RH AVG ", rh_avg)
 
-        print("________ END ________")
+        print("________ END " + str(subj) + " ________")
+    print(all_feautrese)
+    print(all_fmri)
     exit()
 
     # args
@@ -207,7 +206,7 @@ def main():
 
     # Create lists will all training and test image file names, sorted
     train_img_list = os.listdir(train_img_dir)
-    #train_img_list = train_img_list[: 1000]
+    # train_img_list = train_img_list[: 1000]
     train_img_list.sort()
     test_img_list = os.listdir(test_img_dir)
     test_img_list.sort()
@@ -253,7 +252,6 @@ def main():
     torch.cuda.empty_cache()
 
     print("________ Make Classifications ________")
-
 
     lh_classifications_val = makeClassifications(val_images, idxs_val)
     rh_classifications_val = lh_classifications_val
@@ -364,9 +362,12 @@ class argObj:
         # Create the submission directory if not existing
         # if not os.path.isdir(self.subject_submission_dir):
         # os.makedirs(self.subject_submission_dir)
+
+
 def train_model(X, y, model):
     # Define your model here (modify as needed)
     # Change this to the appropriate model
+    model = SuperDuperModel
     model.fit(X, y)
     return model
 
@@ -375,5 +376,5 @@ if __name__ == "__main__":
     platform = 'jupyter_notebook'  # @param ['colab', 'jupyter_notebook'] {allow-input: true}
     device = 'cuda:0'  # @param ['cpu', 'cuda'] {allow-input: true}
     device = torch.device(device)
-
+    SuperDuperModel = LinearRegression()
     main()

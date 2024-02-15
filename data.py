@@ -82,7 +82,7 @@ class ImageDataset(Dataset):
         img = Image.open(img_path).convert('RGB')
         # Preprocess the image and send it to the chosen device ('cpu' or 'cuda')
         if self.transform:
-            img = self.transform(img).to('cuda:1')
+            img = self.transform(img).to('cuda:0')
         return img
 
 
@@ -225,13 +225,7 @@ def learnmore(classifications, image_data, fmri_data):
         fmri.append(np.array(fmri_data[index]))
         index = index + 1
 
-    df = pd.DataFrame(results)
-    df1 = pd.DataFrame(fmri)
-
-    print(df)
-    print(df1)
-
-    return df, df1
+    return results, fmri
 
 
 def unnormalize_fmri_data(normalized_data, original_min, original_max):
