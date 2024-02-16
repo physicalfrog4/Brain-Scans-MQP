@@ -125,7 +125,10 @@ def unnormalize_fmri_data(normalized_data, min_value, max_value, clip_percentile
 def makeList(train_img_dir, train_img_list, idxs_val):
     val_img_list = []
     for i in idxs_val:
+        # print(i)
         img_dir = os.path.join(train_img_dir, train_img_list[i])
+        # train_img = Image.open(img_dir).convert('RGB')
+        # print(train_img)
         val_img_list.append(img_dir)
 
     return val_img_list
@@ -222,10 +225,9 @@ def learnmore(classifications, image_data, fmri_data):
         fmri.append(np.array(fmri_data[index]))
         index = index + 1
 
-    df = pd.DataFrame(results)
-    df1 = pd.DataFrame(fmri)
+    return results, fmri
 
-    print(df)
-    print(df1)
 
-    return df, df1
+def unnormalize_fmri_data(normalized_data, original_min, original_max):
+    unnormalized_data = normalized_data * (original_max - original_min) + original_min
+    return unnormalized_data

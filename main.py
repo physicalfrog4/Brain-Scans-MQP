@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import torch
 from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import KFold, train_test_split
+from sklearn.model_selection import KFold
 
 import data
 from words import makeClassifications, predictions
@@ -200,6 +200,8 @@ def main():
     lh_fmri = np.load(os.path.join(fmri_dir, 'lh_training_fmri.npy'))
     rh_fmri = np.load(os.path.join(fmri_dir, 'rh_training_fmri.npy'))
 
+
+
     print("________ Process Data ________")
     # Normalize Data Before Split
     lh_fmri, lh_data_min, lh_data_max = normalize_fmri_data(lh_fmri)
@@ -227,7 +229,6 @@ def main():
 
     # Create lists will all training and test image file names, sorted
     train_img_list = os.listdir(train_img_dir)
-    # train_img_list = train_img_list[: 1000]
     train_img_list.sort()
     test_img_list = os.listdir(test_img_dir)
     test_img_list.sort()
@@ -251,7 +252,7 @@ def main():
     train_images = data.makeList(train_img_dir, train_img_list, idxs_train)
     val_images = data.makeList(train_img_dir, train_img_list, idxs_val)
     test_images = data.makeList(test_img_dir, test_img_list, idxs_test)
-    # print(train_images)
+
 
     print("________ Create Dataframe For ROI ________")
 
@@ -273,6 +274,7 @@ def main():
     torch.cuda.empty_cache()
 
     print("________ Make Classifications ________")
+
 
     lh_classifications_val = makeClassifications(val_images, idxs_val)
     rh_classifications_val = lh_classifications_val
@@ -339,8 +341,8 @@ def main():
         y_val_pred2 = model.predict(X_val2)
         accuracy2 = model.score(X_val2, y_val2)
         print("Validation Accuracy2:", accuracy2)
-    pred1 = train_model(features_combined, fmri_combined, final_model)
-    pred2 = train_model(features_combined2, fmri_combined2, final_model)
+    final_model = train_model(features_combined, fmri_combined)
+    final_model = train_model(features_combined2, fmri_combined2)
 
     print("________ Predictions ________")
     lh_fmri_val_pred = predictions(dftrainL, dftrainFL, dfvalL, dfvalFL, final_model)
@@ -357,7 +359,6 @@ def main():
     print(rh_data_min, rh_data_max)
 
     lh_fmri_val_pred = data.unnormalize_fmri_data(lh_fmri_val_pred, lh_data_min, lh_data_max)
-    # rh_fmri_val_pred = makePredictions(rh_train_input, rh_fmri_train, rh_val_input, rh_fmri_val)
     rh_fmri_val_pred = data.unnormalize_fmri_data(rh_fmri_val_pred, rh_data_min, rh_data_max)
 
     print("________ Results ________")
@@ -383,12 +384,9 @@ class argObj:
         # Create the submission directory if not existing
         # if not os.path.isdir(self.subject_submission_dir):
         # os.makedirs(self.subject_submission_dir)
-
-
 def train_model(X, y, model):
     # Define your model here (modify as needed)
     # Change this to the appropriate model
-    model = SuperDuperModel
     model.fit(X, y)
     return model
 
@@ -397,5 +395,5 @@ if __name__ == "__main__":
     platform = 'jupyter_notebook'  # @param ['colab', 'jupyter_notebook'] {allow-input: true}
     device = 'cuda:0'  # @param ['cpu', 'cuda'] {allow-input: true}
     device = torch.device(device)
-    SuperDuperModel = LinearRegression()
+
     main()
