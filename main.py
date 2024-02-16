@@ -19,7 +19,7 @@ def main():
 
     all_feautrese = []
     all_fmri = []
-    for subj in range(1, 3):
+    for subj in range(1, 9):
         args = argObj(data_dir, parent_submission_dir, subj)
         fmri_dir = os.path.join(args.data_dir, 'training_split', 'training_fmri')
         lh_fmri = np.load(os.path.join(fmri_dir, 'lh_training_fmri.npy'))
@@ -48,7 +48,7 @@ def main():
 
         # Create lists will all training and test image file names, sorted
         train_img_list = os.listdir(train_img_dir)
-        train_img_list = train_img_list[: 100]
+        #train_img_list = train_img_list[: 100]
         train_img_list.sort()
         test_img_list = os.listdir(test_img_dir)
         test_img_list.sort()
