@@ -6,10 +6,10 @@ from ultralytics import YOLO
 
 def predictions(train, train_fmri, val, val_fmri, model):
     print("PREDICTIONS")
-    #train = train.to_numpy()
-    #train_fmri = train_fmri.to_numpy()
-    #val = val.to_numpy()
-    #val_fmri = val_fmri.to_numpy()
+    # train = train.to_numpy()
+    # train_fmri = train_fmri.to_numpy()
+    # val = val.to_numpy()
+    # val_fmri = val_fmri.to_numpy()
     # input train data
 
     random_forest_model = model
@@ -26,9 +26,9 @@ def predictions(train, train_fmri, val, val_fmri, model):
     return random_forest_predictions
 
 
-def makeClassifications(image_list, idxs, batch_size=64):
+def makeClassifications(image_list, idxs, device, batch_size=64):
     modelYOLO = YOLO('yolov8n.pt')
-    modelYOLO.to('cuda:0')
+    modelYOLO.to(device)
     results = {}
 
     for start_idx in range(0, len(image_list), batch_size):
@@ -64,4 +64,3 @@ def makeClassifications(image_list, idxs, batch_size=64):
     final = df.to_numpy()
 
     return final
-

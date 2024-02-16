@@ -16,6 +16,7 @@ def main():
         data_dir = '../MQP/algonauts_2023_challenge_data/'
         parent_submission_dir = 'C:\GitHub\Brain-Scans-MQP\submissiondir'
     subj = 5  # @param ["1", "2", "3", "4", "5", "6", "7", "8"] {type:"raw", allow-input: true}
+    SuperDuperModel = LinearRegression()
 
     all_feautrese = []
     all_fmri = []
@@ -48,7 +49,7 @@ def main():
 
         # Create lists will all training and test image file names, sorted
         train_img_list = os.listdir(train_img_dir)
-        #train_img_list = train_img_list[: 100]
+        # train_img_list = train_img_list[: 100]
         train_img_list.sort()
         test_img_list = os.listdir(test_img_dir)
         test_img_list.sort()
@@ -78,9 +79,9 @@ def main():
 
         print("________ Make Classifications ________")
 
-        lh_classifications_val = makeClassifications(val_images, idxs_val)
+        lh_classifications_val = makeClassifications(val_images, idxs_val, device)
         rh_classifications_val = lh_classifications_val
-        lh_classifications = makeClassifications(train_images, idxs_train)
+        lh_classifications = makeClassifications(train_images, idxs_train, device)
         rh_classifications = lh_classifications
         torch.cuda.empty_cache()
 
@@ -91,7 +92,7 @@ def main():
         # model_img = torch.hub.load('pytorch/vision:v0.10.0', 'mobilenet_v2', pretrained=True)
         model_img = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', pretrained=True)
         model_img.eval()
-        model_img.to('cuda:0')
+        model_img.to(device)
 
         features_train, features_val, features_test = \
             extract_data_features(model_img, train_imgs_dataloader, val_imgs_dataloader, test_imgs_dataloader, 64)
@@ -112,26 +113,26 @@ def main():
         dummy = []
         dummy.extend(features_combined)
 
-        if len(all_feautrese) == 0:
+        #if len(all_feautrese) == 0:
             # If it's empty, set it to features_combined directly
-            all_feautrese = features_combined
-            all_fmri = fmri_combined
-        else:
+        #    all_feautrese = features_combined
+        #    all_fmri = fmri_combined
+        #else:
             # Otherwise, concatenate them vertically
-            all_feautrese = np.vstack([all_feautrese, features_combined])
-            all_fmri = np.vstack([all_fmri, fmri_combined])
+        #    all_feautrese = np.vstack([all_feautrese, features_combined])
+        #    all_fmri = np.vstack([all_fmri, fmri_combined])
 
         features_combined2 = np.concatenate([dftrainR, dfvalR], axis=0)
         fmri_combined2 = np.concatenate([dftrainFR, dfvalFR], axis=0)
 
-        if len(all_feautrese) == 0:
-            # If it's empty, set it to features_combined directly
-            all_feautrese = features_combined2
-            all_fmri = fmri_combined2
-        else:
-            # Otherwise, concatenate them vertically
-            all_feautrese = np.vstack([all_feautrese, features_combined2])
-            all_fmri = np.vstack([all_fmri, fmri_combined2])
+        #if len(all_feautrese) == 0:
+        #    # If it's empty, set it to features_combined directly
+        #    all_feautrese = features_combined2
+        #    all_fmri = fmri_combined2
+        #else:
+        #    # Otherwise, concatenate them vertically
+        #    all_feautrese = np.vstack([all_feautrese, features_combined2])
+        #    all_fmri = np.vstack([all_fmri, fmri_combined2])
 
         # Perform k-fold cross-validation for training your model
         kf = KFold(n_splits=3, shuffle=True)
@@ -182,15 +183,9 @@ def main():
         print("RH AVG ", rh_avg)
 
         print("________ END " + str(subj) + " ________")
-    print(len(all_feautrese))
-    print(all_feautrese)
-    print(all_fmri)
-    X_train, X_test, y_train, y_test = train_test_split(all_feautrese, all_fmri, random_state=104, train_size=0.8,
-                                                        shuffle=True)
-    model = train_model(X_train, y_train, SuperDuperModel)
-    y_val_pred = model.predict(X_test)
-    accuracy = model.score(X_test, y_test)
-    print("Validation Accuracy Final:", accuracy)
+    #print(len(all_feautrese))
+    #print(all_feautrese)
+    #print(all_fmri)
 
     exit()
 
@@ -199,8 +194,6 @@ def main():
     fmri_dir = os.path.join(args.data_dir, 'training_split', 'training_fmri')
     lh_fmri = np.load(os.path.join(fmri_dir, 'lh_training_fmri.npy'))
     rh_fmri = np.load(os.path.join(fmri_dir, 'rh_training_fmri.npy'))
-
-
 
     print("________ Process Data ________")
     # Normalize Data Before Split
@@ -253,7 +246,6 @@ def main():
     val_images = data.makeList(train_img_dir, train_img_list, idxs_val)
     test_images = data.makeList(test_img_dir, test_img_list, idxs_test)
 
-
     print("________ Create Dataframe For ROI ________")
 
     # lh_train_ROI = data.dfROI(args, 'left', idxs_train, lh_fmri, rh_fmri)
@@ -275,10 +267,9 @@ def main():
 
     print("________ Make Classifications ________")
 
-
-    lh_classifications_val = makeClassifications(val_images, idxs_val)
+    lh_classifications_val = makeClassifications(val_images, idxs_val, device)
     rh_classifications_val = lh_classifications_val
-    lh_classifications = makeClassifications(train_images, idxs_train)
+    lh_classifications = makeClassifications(train_images, idxs_train, device)
     rh_classifications = lh_classifications
     torch.cuda.empty_cache()
 
@@ -294,7 +285,7 @@ def main():
     # model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet101', pretrained=True)
     # model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet152', pretrained=True)
     model_img.eval()
-    model_img.to('cuda:0')
+    model_img.to(device)
 
     features_train, features_val, features_test = \
         extract_data_features(model_img, train_imgs_dataloader, val_imgs_dataloader, test_imgs_dataloader, 64)
@@ -384,6 +375,8 @@ class argObj:
         # Create the submission directory if not existing
         # if not os.path.isdir(self.subject_submission_dir):
         # os.makedirs(self.subject_submission_dir)
+
+
 def train_model(X, y, model):
     # Define your model here (modify as needed)
     # Change this to the appropriate model
@@ -394,6 +387,6 @@ def train_model(X, y, model):
 if __name__ == "__main__":
     platform = 'jupyter_notebook'  # @param ['colab', 'jupyter_notebook'] {allow-input: true}
     device = 'cuda:0'  # @param ['cpu', 'cuda'] {allow-input: true}
-    device = torch.device(device)
+    # device = torch.device(device)
 
     main()
