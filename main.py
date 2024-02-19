@@ -17,7 +17,8 @@ def main():
         data_dir = '../MQP/algonauts_2023_challenge_data/'
         parent_submission_dir = 'C:\GitHub\Brain-Scans-MQP\submissiondir'
     subj = 5  # @param ["1", "2", "3", "4", "5", "6", "7", "8"] {type:"raw", allow-input: true}
-    # SuperDuperModel = LinearRegression()
+    SuperDuperModel = LinearRegression()
+
     all_features_LH = []
     all_fmri_LH = []
     all_features_RH = []
@@ -81,9 +82,9 @@ def main():
 
         print("________ Make Classifications ________")
 
-        lh_classifications_val = makeClassifications(val_images, idxs_val)
+        lh_classifications_val = makeClassifications(val_images, idxs_val, device)
         rh_classifications_val = lh_classifications_val
-        lh_classifications = makeClassifications(train_images, idxs_train)
+        lh_classifications = makeClassifications(train_images, idxs_train, device)
         rh_classifications = lh_classifications
         torch.cuda.empty_cache()
 
@@ -93,13 +94,8 @@ def main():
             transformData(train_img_dir, test_img_dir, idxs_train, idxs_val, idxs_test, 64)
         # model_img = torch.hub.load('pytorch/vision:v0.10.0', 'mobilenet_v2', pretrained=True)
         model_img = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', pretrained=True)
-        # or any of these variants
-        # model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet34', pretrained=True)
-        # model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet50', pretrained=True)
-        # model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet101', pretrained=True)
-        # model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet152', pretrained=True)
         model_img.eval()
-        model_img.to('cuda:0')
+        model_img.to(device)
 
         features_train, features_val, features_test = \
             extract_data_features(model_img, train_imgs_dataloader, val_imgs_dataloader, test_imgs_dataloader, 64)
@@ -112,17 +108,34 @@ def main():
         dftrainR, dftrainFR = learnmore(rh_classifications, features_train, rh_fmri_train)
         dfvalR, dfvalFR = learnmore(rh_classifications_val, features_val, rh_fmri_val)
 
-
-
         features_combined = np.concatenate([dftrainL, dfvalL], axis=0)
         fmri_combined = np.concatenate([dftrainFL, dfvalFL], axis=0)
-        all_features_LH.append(features_combined)
-        all_fmri_LH.append(fmri_combined)
+        print(fmri_combined.shape)
+        features_combined.reshape(-1, 66)
+        print(features_combined)
+        dummy = []
+        dummy.extend(features_combined)
+
+        #if len(all_feautrese) == 0:
+            # If it's empty, set it to features_combined directly
+        #    all_feautrese = features_combined
+        #    all_fmri = fmri_combined
+        #else:
+            # Otherwise, concatenate them vertically
+        #    all_feautrese = np.vstack([all_feautrese, features_combined])
+        #    all_fmri = np.vstack([all_fmri, fmri_combined])
 
         features_combined2 = np.concatenate([dftrainR, dfvalR], axis=0)
         fmri_combined2 = np.concatenate([dftrainFR, dfvalFR], axis=0)
-        all_features_RH.append(features_combined2)
-        all_fmri_RH.append(fmri_combined2)
+
+        #if len(all_feautrese) == 0:
+        #    # If it's empty, set it to features_combined directly
+        #    all_feautrese = features_combined2
+        #    all_fmri = fmri_combined2
+        #else:
+        #    # Otherwise, concatenate them vertically
+        #    all_feautrese = np.vstack([all_feautrese, features_combined2])
+        #    all_fmri = np.vstack([all_fmri, fmri_combined2])
 
         # Perform k-fold cross-validation for training your model
         kf = KFold(n_splits=10, shuffle=True)
@@ -208,14 +221,14 @@ def main():
 
         print("________ END " + str(subj) + " ________")
 
-    print(all_features_LH.shape)
-    print(all_fmri_LH.shape)
+    #print(len(all_feautrese))
+    #print(all_features_LH.shape)
+    #print(all_fmri_LH.shape)
 
 
 
     X_train, X_val = all_features_LH[train_index], all_features_LH[val_index]
     y_train, y_val = all_fmri_LH[train_index], all_fmri_LH[val_index]
-
     exit()
 
     # args
