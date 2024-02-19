@@ -18,8 +18,10 @@ def main():
         parent_submission_dir = 'C:\GitHub\Brain-Scans-MQP\submissiondir'
     subj = 5  # @param ["1", "2", "3", "4", "5", "6", "7", "8"] {type:"raw", allow-input: true}
     # SuperDuperModel = LinearRegression()
-    all_feautrese = []
-    all_fmri = []
+    all_features_LH = []
+    all_fmri_LH = []
+    all_features_RH = []
+    all_fmri_RH = []
     for subj in range(1, 9):
         args = argObj(data_dir, parent_submission_dir, subj)
         fmri_dir = os.path.join(args.data_dir, 'training_split', 'training_fmri')
@@ -114,11 +116,13 @@ def main():
 
         features_combined = np.concatenate([dftrainL, dfvalL], axis=0)
         fmri_combined = np.concatenate([dftrainFL, dfvalFL], axis=0)
-        all_feautrese.append(features_combined)
-        all_fmri.append(fmri_combined)
+        all_features_LH.append(features_combined)
+        all_fmri_LH.append(fmri_combined)
 
         features_combined2 = np.concatenate([dftrainR, dfvalR], axis=0)
         fmri_combined2 = np.concatenate([dftrainFR, dfvalFR], axis=0)
+        all_features_RH.append(features_combined2)
+        all_fmri_RH.append(fmri_combined2)
 
         # Perform k-fold cross-validation for training your model
         kf = KFold(n_splits=10, shuffle=True)
@@ -168,9 +172,50 @@ def main():
         print("LH AVG ", lh_avg)
         print("RH AVG ", rh_avg)
 
+        for clss in range(0, 23):
+            print(clss)
+            avg = []
+            avgg = []
+            avg2 = []
+            avgg2 = []
+            for i in range(len(lh_classifications_val)):
+
+                # vehicle = 7
+                if lh_classifications_val[i][1] == clss:
+                    # print(lh_classifications_val[i])
+                    avg.append(lh_fmri_val_pred[i])
+                    avgg.append(lh_fmri_val[i])
+                    # print(lh_fmri_val[i])
+                if rh_classifications[i][1] == clss:
+                    avg2.append(rh_fmri_val_pred[i])
+                    avgg2.append(lh_fmri_val[i])
+            # print(avg)
+
+            lh = np.mean(avg, axis=0)
+            rh = np.mean(avg2, axis=0)
+            print("MEAN PRED:\n", lh)
+            # print("MEAN:\n", rh)
+            # visualize.anotherOne(args, lh, rh)
+            lh2 = np.mean(avgg, axis=0)
+            rh2 = np.mean(avgg2, axis=0)
+            print("MEAN REAL:\n", lh2)
+            # print("MEAN:\n", rh2)
+            # visualize.anotherOne(args, lh2, rh2)
+            # print(np.mean((lh2 - lh)))
+            corr = np.corrcoef(avg, avgg)
+            print(corr)
+            print("Corre ", np.mean(corr))
+
         print("________ END " + str(subj) + " ________")
-    print(all_feautrese)
-    print(all_fmri)
+
+    print(all_features_LH.shape)
+    print(all_fmri_LH.shape)
+
+
+
+    X_train, X_val = all_features_LH[train_index], all_features_LH[val_index]
+    y_train, y_val = all_fmri_LH[train_index], all_fmri_LH[val_index]
+
     exit()
 
     # args

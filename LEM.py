@@ -11,7 +11,7 @@ from scipy.stats import pearsonr as corr
 
 def extract_data_features(modelGN, train_imgs_dataloader, val_imgs_dataloader, test_imgs_dataloader, batch_size):
     train_nodes, _ = get_graph_node_names(modelGN)
-    model_layer = "classifier.0"
+    model_layer = "layer4.0.conv1"
     feature_extractor = create_feature_extractor(modelGN, return_nodes=[model_layer])
     pca = fit_pca(feature_extractor, train_imgs_dataloader, batch_size)
 
