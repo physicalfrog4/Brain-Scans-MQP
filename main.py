@@ -9,23 +9,25 @@ import data
 from words import makeClassifications, predictions
 from data import normalize_fmri_data, learnmore, transformData
 from LEM import extract_data_features, predAccuracy
+from visualize import anotherOne
 
 
 def main():
     if platform == 'jupyter_notebook':
 
-        data_dir = '../MQP/algonauts_2023_challenge_data/'
+        data_dir = ''
         parent_submission_dir = 'C:\GitHub\Brain-Scans-MQP\submissiondir'
-    subj = 5  # @param ["1", "2", "3", "4", "5", "6", "7", "8"] {type:"raw", allow-input: true}
+    subj = 1  # @param ["1", "2", "3", "4", "5", "6", "7", "8"] {type:"raw", allow-input: true}
     SuperDuperModel = LinearRegression()
-
     all_features_LH = []
     all_fmri_LH = []
     all_features_RH = []
     all_fmri_RH = []
-    for subj in range(1, 9):
+    for subj in range(1, 4):
         args = argObj(data_dir, parent_submission_dir, subj)
+        
         fmri_dir = os.path.join(args.data_dir, 'training_split', 'training_fmri')
+        print(fmri_dir)
         lh_fmri = np.load(os.path.join(fmri_dir, 'lh_training_fmri.npy'))
         rh_fmri = np.load(os.path.join(fmri_dir, 'rh_training_fmri.npy'))
 
@@ -52,7 +54,7 @@ def main():
 
         # Create lists will all training and test image file names, sorted
         train_img_list = os.listdir(train_img_dir)
-        train_img_list = train_img_list[: 1000]
+        #train_img_list = train_img_list[: 450]
         train_img_list.sort()
         test_img_list = os.listdir(test_img_dir)
         test_img_list.sort()
@@ -91,14 +93,14 @@ def main():
         print("________ Extract Image Features ________")
 
         train_imgs_dataloader, val_imgs_dataloader, test_imgs_dataloader = \
-            transformData(train_img_dir, test_img_dir, idxs_train, idxs_val, idxs_test, 64)
+            transformData(train_img_dir, test_img_dir, idxs_train, idxs_val, idxs_test, 250)
         # model_img = torch.hub.load('pytorch/vision:v0.10.0', 'mobilenet_v2', pretrained=True)
         model_img = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', pretrained=True)
         model_img.eval()
         model_img.to(device)
 
         features_train, features_val, features_test = \
-            extract_data_features(model_img, train_imgs_dataloader, val_imgs_dataloader, test_imgs_dataloader, 64)
+            extract_data_features(model_img, train_imgs_dataloader, val_imgs_dataloader, test_imgs_dataloader, 250)
         del model_img
 
         print("________ LEARN MORE ________")
@@ -111,7 +113,8 @@ def main():
         features_combined = np.concatenate([dftrainL, dfvalL], axis=0)
         fmri_combined = np.concatenate([dftrainFL, dfvalFL], axis=0)
         print(fmri_combined.shape)
-        features_combined.reshape(-1, 66)
+        num = fmri_combined.shape[0]
+        features_combined.reshape(-1, num)
         print(features_combined)
         dummy = []
         dummy.extend(features_combined)
@@ -160,9 +163,9 @@ def main():
         rh_fmri_val_pred = data.unnormalize_fmri_data(rh_fmri_val_pred, rh_data_min, rh_data_max)
 
         print("________ Results ________")
-        words = ['furniture', 'food', 'kitchenware', 'appliance', 'person', 'animal', 'vehicle', 'accessory',
-                 'electronics', 'sports', 'traffic', 'outdoor', 'home', 'clothing', 'hygiene', 'toy', 'plumbing',
-                 'safety', 'luggage', 'computer', 'fruit', 'vegetable', 'tool']
+        words = ['furniture', 'food', 'kitchenware', 'appliance', 'person', 'animal','wild', 'farm', 'vehicle', 'accessory',
+                'electronics', 'sports', 'traffic', 'outdoor', 'home', 'clothing', 'toy', 'plumbing',
+                'safety', 'luggage', 'computer', 'fruit', 'vegetable', 'tool']
 
         lh_correlation, rh_correlation = predAccuracy(lh_fmri_val_pred, lh_fmri_val, rh_fmri_val_pred, rh_fmri_val)
         lh_avg = np.average(lh_fmri_val_pred - lh_fmri_val)
@@ -172,7 +175,7 @@ def main():
         print("RH AVG ", rh_avg)
         length = len(words)
 
-        for clss in range(words):
+        for clss in range(length):
             print(clss, words[clss])
             avg = []
             avgg = []
@@ -182,7 +185,7 @@ def main():
 
                 # vehicle = 7
                 if lh_classifications_val[i][1] == clss:
-                    # print(lh_classifications_val[i])
+                    print(lh_classifications_val[i])
                     avg.append(lh_fmri_val_pred[i])
                     avgg.append(lh_fmri_val[i])
                     # print(lh_fmri_val[i])
@@ -195,12 +198,12 @@ def main():
             rh = np.mean(avg2, axis=0)
             print("MEAN PRED:\n", lh)
             # print("MEAN:\n", rh)
-            # visualize.anotherOne(args, lh, rh)
+            #anotherOne(args, lh, rh)
             lh2 = np.mean(avgg, axis=0)
             rh2 = np.mean(avgg2, axis=0)
             print("MEAN REAL:\n", lh2)
             # print("MEAN:\n", rh2)
-            # visualize.anotherOne(args, lh2, rh2)
+            #anotherOne(args, lh2, rh2)
             # print(np.mean((lh2 - lh)))
             corr = np.corrcoef(avg, avgg)
             print(corr)
@@ -418,5 +421,6 @@ if __name__ == "__main__":
     platform = 'jupyter_notebook'  # @param ['colab', 'jupyter_notebook'] {allow-input: true}
     device = 'cuda:0'  # @param ['cpu', 'cuda'] {allow-input: true}
     device = torch.device(device)
+    print(torch. cuda. is_available()) 
     SuperDuperModel = LinearRegression()
     main()
