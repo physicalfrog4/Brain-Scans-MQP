@@ -116,26 +116,9 @@ def main():
         dummy = []
         dummy.extend(features_combined)
 
-        #if len(all_feautrese) == 0:
-            # If it's empty, set it to features_combined directly
-        #    all_feautrese = features_combined
-        #    all_fmri = fmri_combined
-        #else:
-            # Otherwise, concatenate them vertically
-        #    all_feautrese = np.vstack([all_feautrese, features_combined])
-        #    all_fmri = np.vstack([all_fmri, fmri_combined])
 
         features_combined2 = np.concatenate([dftrainR, dfvalR], axis=0)
         fmri_combined2 = np.concatenate([dftrainFR, dfvalFR], axis=0)
-
-        #if len(all_feautrese) == 0:
-        #    # If it's empty, set it to features_combined directly
-        #    all_feautrese = features_combined2
-        #    all_fmri = fmri_combined2
-        #else:
-        #    # Otherwise, concatenate them vertically
-        #    all_feautrese = np.vstack([all_feautrese, features_combined2])
-        #    all_fmri = np.vstack([all_fmri, fmri_combined2])
 
         # Perform k-fold cross-validation for training your model
         kf = KFold(n_splits=10, shuffle=True)
@@ -177,6 +160,9 @@ def main():
         rh_fmri_val_pred = data.unnormalize_fmri_data(rh_fmri_val_pred, rh_data_min, rh_data_max)
 
         print("________ Results ________")
+        words = ['furniture', 'food', 'kitchenware', 'appliance', 'person', 'animal', 'vehicle', 'accessory',
+                 'electronics', 'sports', 'traffic', 'outdoor', 'home', 'clothing', 'hygiene', 'toy', 'plumbing',
+                 'safety', 'luggage', 'computer', 'fruit', 'vegetable', 'tool']
 
         lh_correlation, rh_correlation = predAccuracy(lh_fmri_val_pred, lh_fmri_val, rh_fmri_val_pred, rh_fmri_val)
         lh_avg = np.average(lh_fmri_val_pred - lh_fmri_val)
@@ -184,9 +170,10 @@ def main():
 
         print("LH AVG ", lh_avg)
         print("RH AVG ", rh_avg)
+        length = len(words)
 
-        for clss in range(0, 23):
-            print(clss)
+        for clss in range(words):
+            print(clss, words[clss])
             avg = []
             avgg = []
             avg2 = []
@@ -221,9 +208,6 @@ def main():
 
         print("________ END " + str(subj) + " ________")
 
-    #print(len(all_feautrese))
-    #print(all_features_LH.shape)
-    #print(all_fmri_LH.shape)
 
 
 
